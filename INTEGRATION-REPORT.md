@@ -40,6 +40,8 @@ IDNow's compiled VB6 form expects Topaz's SigPlus.ocx COM/ActiveX contract. Waco
 
 Exit the bridge from its notification-area menu. It removes its temporary keyboard hook when it exits and creates no startup item or registry change. To remove the integration completely, delete only:
 
+The selected signature directory is stored per user at `%LOCALAPPDATA%\IDNowWacomBridge\signature-folder.txt`; choose `Use default signature folder` from the tray menu to remove that setting.
+
 C:\Program Files (x86)\IDNow\_Wacom430_Work\
 
 This does not affect IDNow or its data.

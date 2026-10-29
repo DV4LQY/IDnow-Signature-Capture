@@ -58,7 +58,9 @@ namespace IDNowWacomBridge
         {
             ContextMenuStrip menu = new ContextMenuStrip();
             menu.Items.Add("Capture signature now", null, delegate { BeginCapture(FindIdNowWindow()); });
+            menu.Items.Add("Set signature folder...", null, delegate { ConfigureSignatureFolder(); });
             menu.Items.Add("Open signature folder", null, delegate { OpenSignatureFolder(); });
+            menu.Items.Add("Use default signature folder", null, delegate { UseDefaultSignatureFolder(); });
             menu.Items.Add("Exit bridge", null, delegate { ExitThread(); });
 
             notifyIcon = new NotifyIcon
@@ -239,6 +241,13 @@ namespace IDNowWacomBridge
             {
                 return configured;
             }
+
+            configured = SignatureFolderSettings.Load();
+            if (!string.IsNullOrEmpty(configured))
+            {
+                return configured;
+            }
+
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "IDNow Signatures");
         }
 
@@ -279,6 +288,34 @@ namespace IDNowWacomBridge
             Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
         }
 
+        private void ConfigureSignatureFolder()
+        {
+            using (FolderBrowserDialog dialog = new FolderBrowserDialog())
+            {
+                dialog.Description = "Choose where IDNow Wacom signature BMP files are saved.";
+                string current = SignatureOutputFolder();
+                if (Directory.Exists(current))
+                {
+                    dialog.SelectedPath = current;
+                }
+
+                if (dialog.ShowDialog() == DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.SelectedPath))
+                {
+                    Directory.CreateDirectory(dialog.SelectedPath);
+                    SignatureFolderSettings.Save(dialog.SelectedPath);
+                    ShowStatus("Signature folder updated", dialog.SelectedPath);
+                }
+            }
+        }
+
+        private void UseDefaultSignatureFolder()
+        {
+            SignatureFolderSettings.Reset();
+            ShowStatus(
+                "Default signature folder restored",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "IDNow Signatures"));
+        }
+
         private void ShowStatus(string title, string message)
         {
             notifyIcon.BalloonTipTitle = title;
@@ -296,6 +333,58 @@ namespace IDNowWacomBridge
             notifyIcon.Visible = false;
             notifyIcon.Dispose();
             base.ExitThreadCore();
+        }
+    }
+
+    internal static class SignatureFolderSettings
+    {
+        private static string SettingsPath
+        {
+            get
+            {
+                return Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "IDNowWacomBridge",
+                    "signature-folder.txt");
+            }
+        }
+
+        internal static string Load()
+        {
+            try
+            {
+                if (!File.Exists(SettingsPath))
+                {
+                    return null;
+                }
+
+                string folder = File.ReadAllText(SettingsPath).Trim();
+                return Path.IsPathRooted(folder) ? folder : null;
+            }
+            catch (IOException)
+            {
+                return null;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return null;
+            }
+        }
+
+        internal static void Save(string folder)
+        {
+            string fullPath = Path.GetFullPath(folder);
+            string settingsDirectory = Path.GetDirectoryName(SettingsPath);
+            Directory.CreateDirectory(settingsDirectory);
+            File.WriteAllText(SettingsPath, fullPath);
+        }
+
+        internal static void Reset()
+        {
+            if (File.Exists(SettingsPath))
+            {
+                File.Delete(SettingsPath);
+            }
         }
     }
 

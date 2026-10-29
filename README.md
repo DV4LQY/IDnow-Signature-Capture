@@ -31,6 +31,14 @@ The associated BMP is also stored in `Documents\IDNow Signatures`.
 
 You can also right-click the tray icon and choose `Capture signature now`.
 
+## Configure where signatures are saved
+
+Right-click the bridge tray icon and choose `Set signature folder...`, then
+select the destination directory. The choice is saved for the current Windows
+user and every later F6 capture writes its BMP there. `Open signature folder`
+opens the active location. Choose `Use default signature folder` to return to
+`Documents\IDNow Signatures`.
+
 ## Design limitations
 
 IDNow's in-form Topaz control is a compiled VB6 reference to `SigPlus.ocx`;
