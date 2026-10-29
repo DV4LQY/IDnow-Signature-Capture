@@ -39,6 +39,17 @@ user and every later F6 capture writes its BMP there. `Open signature folder`
 opens the active location. Choose `Use default signature folder` to return to
 `Documents\IDNow Signatures`.
 
+## Configure signature appearance
+
+Right-click the bridge tray icon and choose `Signature appearance...`. Set a
+stroke width from 0.10 to 2.50 mm and select a preview color. The choices are
+saved for the current Windows user and used by future F6 captures. Choose
+`Use default signature appearance` to return to a 0.25 mm black preview.
+
+The generated 370 x 120 BMP and clipboard image retain the selected color
+and stroke rendering. A legacy IDNow template may still normalize the image
+during its own import step.
+
 ## Design limitations
 
 IDNow's in-form Topaz control is a compiled VB6 reference to `SigPlus.ocx`;

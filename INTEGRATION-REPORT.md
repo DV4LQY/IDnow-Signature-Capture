@@ -42,6 +42,8 @@ Exit the bridge from its notification-area menu. It removes its temporary keyboa
 
 The selected signature directory is stored per user at `%LOCALAPPDATA%\IDNowWacomBridge\signature-folder.txt`; choose `Use default signature folder` from the tray menu to remove that setting.
 
+The selected signature appearance is stored per user at `%LOCALAPPDATA%\IDNowWacomBridge\signature-appearance.txt`; use the `Signature appearance...` tray command to choose a 0.10 to 2.50 mm stroke and color, or `Use default signature appearance` to remove the setting. The generated 370 x 120 BMP and clipboard image retain both settings; a legacy IDNow template may still normalize color when it imports the image.
+
 C:\Program Files (x86)\IDNow\_Wacom430_Work\
 
 This does not affect IDNow or its data.

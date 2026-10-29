@@ -59,8 +59,10 @@ namespace IDNowWacomBridge
             ContextMenuStrip menu = new ContextMenuStrip();
             menu.Items.Add("Capture signature now", null, delegate { BeginCapture(FindIdNowWindow()); });
             menu.Items.Add("Set signature folder...", null, delegate { ConfigureSignatureFolder(); });
+            menu.Items.Add("Signature appearance...", null, delegate { ConfigureSignatureAppearance(); });
             menu.Items.Add("Open signature folder", null, delegate { OpenSignatureFolder(); });
             menu.Items.Add("Use default signature folder", null, delegate { UseDefaultSignatureFolder(); });
+            menu.Items.Add("Use default signature appearance", null, delegate { UseDefaultSignatureAppearance(); });
             menu.Items.Add("Exit bridge", null, delegate { ExitThread(); });
 
             notifyIcon = new NotifyIcon
@@ -147,6 +149,7 @@ namespace IDNowWacomBridge
             try
             {
                 Directory.CreateDirectory(outputFolder);
+                SignatureAppearance appearance = SignatureAppearanceSettings.Load();
                 ProcessStartInfo startInfo = new ProcessStartInfo(captureExe)
                 {
                     WorkingDirectory = Path.GetDirectoryName(captureExe),
@@ -156,6 +159,15 @@ namespace IDNowWacomBridge
                 startInfo.EnvironmentVariables["IDNOW_WACOM_OWNER_HANDLE"] =
                     idNowWindow.ToInt64().ToString(CultureInfo.InvariantCulture);
                 startInfo.EnvironmentVariables["IDNOW_WACOM_AUTOSTART"] = "1";
+                startInfo.EnvironmentVariables["IDNOW_WACOM_STROKE_MM"] =
+                    appearance.StrokeWidthMillimeters.ToString("0.00", CultureInfo.InvariantCulture);
+                startInfo.EnvironmentVariables["IDNOW_WACOM_STROKE_COLOR"] =
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "#{0:X2}{1:X2}{2:X2}",
+                        appearance.StrokeColor.R,
+                        appearance.StrokeColor.G,
+                        appearance.StrokeColor.B);
 
                 Process captureProcess = Process.Start(startInfo);
                 if (captureProcess == null)
@@ -316,6 +328,29 @@ namespace IDNowWacomBridge
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "IDNow Signatures"));
         }
 
+        private void ConfigureSignatureAppearance()
+        {
+            using (SignatureAppearanceForm dialog = new SignatureAppearanceForm(SignatureAppearanceSettings.Load()))
+            {
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    SignatureAppearance appearance = new SignatureAppearance(
+                        dialog.StrokeWidthMillimeters,
+                        dialog.StrokeColor);
+                    SignatureAppearanceSettings.Save(appearance);
+                    ShowStatus(
+                        "Signature appearance updated",
+                        appearance.StrokeWidthMillimeters.ToString("0.00", CultureInfo.InvariantCulture) + " mm");
+                }
+            }
+        }
+
+        private void UseDefaultSignatureAppearance()
+        {
+            SignatureAppearanceSettings.Reset();
+            ShowStatus("Default signature appearance restored", "0.25 mm black preview");
+        }
+
         private void ShowStatus(string title, string message)
         {
             notifyIcon.BalloonTipTitle = title;
@@ -377,6 +412,119 @@ namespace IDNowWacomBridge
             string settingsDirectory = Path.GetDirectoryName(SettingsPath);
             Directory.CreateDirectory(settingsDirectory);
             File.WriteAllText(SettingsPath, fullPath);
+        }
+
+        internal static void Reset()
+        {
+            if (File.Exists(SettingsPath))
+            {
+                File.Delete(SettingsPath);
+            }
+        }
+    }
+
+    internal sealed class SignatureAppearance
+    {
+        internal const float DefaultStrokeWidthMillimeters = 0.25F;
+        internal static readonly Color DefaultStrokeColor = Color.Black;
+
+        internal SignatureAppearance(float strokeWidthMillimeters, Color strokeColor)
+        {
+            StrokeWidthMillimeters = strokeWidthMillimeters;
+            StrokeColor = strokeColor;
+        }
+
+        internal float StrokeWidthMillimeters { get; private set; }
+
+        internal Color StrokeColor { get; private set; }
+    }
+
+    internal static class SignatureAppearanceSettings
+    {
+        private static string SettingsPath
+        {
+            get
+            {
+                return Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "IDNowWacomBridge",
+                    "signature-appearance.txt");
+            }
+        }
+
+        internal static SignatureAppearance Load()
+        {
+            float width = SignatureAppearance.DefaultStrokeWidthMillimeters;
+            Color color = SignatureAppearance.DefaultStrokeColor;
+
+            try
+            {
+                if (!File.Exists(SettingsPath))
+                {
+                    return new SignatureAppearance(width, color);
+                }
+
+                foreach (string line in File.ReadAllLines(SettingsPath))
+                {
+                    int separator = line.IndexOf('=');
+                    if (separator <= 0)
+                    {
+                        continue;
+                    }
+
+                    string key = line.Substring(0, separator).Trim();
+                    string value = line.Substring(separator + 1).Trim();
+                    if (string.Equals(key, "strokeWidthMillimeters", StringComparison.OrdinalIgnoreCase))
+                    {
+                        float parsed;
+                        if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed) &&
+                            parsed >= 0.10F && parsed <= 2.50F)
+                        {
+                            width = parsed;
+                        }
+                    }
+                    else if (string.Equals(key, "strokeColor", StringComparison.OrdinalIgnoreCase))
+                    {
+                        try
+                        {
+                            color = ColorTranslator.FromHtml(value);
+                        }
+                        catch (ArgumentException)
+                        {
+                            // Keep the default or previously valid color.
+                        }
+                    }
+                }
+            }
+            catch (IOException)
+            {
+                // Use defaults when a settings file cannot be read.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Use defaults when a settings file cannot be read.
+            }
+
+            return new SignatureAppearance(width, color);
+        }
+
+        internal static void Save(SignatureAppearance appearance)
+        {
+            string settingsDirectory = Path.GetDirectoryName(SettingsPath);
+            Directory.CreateDirectory(settingsDirectory);
+            File.WriteAllLines(
+                SettingsPath,
+                new[]
+                {
+                    "strokeWidthMillimeters=" +
+                        appearance.StrokeWidthMillimeters.ToString("0.00", CultureInfo.InvariantCulture),
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "strokeColor=#{0:X2}{1:X2}{2:X2}",
+                        appearance.StrokeColor.R,
+                        appearance.StrokeColor.G,
+                        appearance.StrokeColor.B)
+                });
         }
 
         internal static void Reset()
