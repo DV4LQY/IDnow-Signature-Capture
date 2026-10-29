@@ -1,0 +1,5 @@
+C:\Program Files (x86)\IDNow\_Wacom430_Work\IDNowWacomBridge\bin\Release\IDNowWacomBridge.exe
+C:\Program Files (x86)\IDNow\_Wacom430_Work\IDNowWacomBridge\bin\Release\IDNowWacomBridge.pdb
+C:\Program Files (x86)\IDNow\_Wacom430_Work\IDNowWacomBridge\obj\x86\Release\IDNowWacomBridge.csprojResolveAssemblyReference.cache
+C:\Program Files (x86)\IDNow\_Wacom430_Work\IDNowWacomBridge\obj\x86\Release\IDNowWacomBridge.exe
+C:\Program Files (x86)\IDNow\_Wacom430_Work\IDNowWacomBridge\obj\x86\Release\IDNowWacomBridge.pdb
